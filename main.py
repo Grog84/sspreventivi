@@ -9,14 +9,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.lib import colors
 from reportlab.pdfgen import canvas
-
-from django.http import HttpResponse
 
 class MyLabel(QLabel):
 
     def __init__(self, text_str, window, posx, posy):
-        super().__init__(text_str, window)
+        super(MyLabel, self).__init__(text_str, window)
         self.move(posx, posy)
         self.setFixedWidth(310)
 
@@ -24,7 +23,7 @@ class MyLabel(QLabel):
 class MyEntry(QLineEdit):
 
     def __init__(self, window, posx, posy, init_val, min_val=0, max_val=30):
-        super().__init__(window)
+        super(MyEntry, self).__init__(window)
 
         self.min_val = min_val
         self.max_val = max_val
@@ -49,7 +48,7 @@ class MyEntry(QLineEdit):
 class RadioButtonPair(QtWidgets.QWidget):
 
     def __init__(self, parent):
-        super().__init__(parent)
+        super(RadioButtonPair, self).__init__(parent)
 
         layout = QtWidgets.QHBoxLayout()
         self.setLayout(layout)
@@ -76,6 +75,7 @@ class Window(QMainWindow):
 
         self.removePdfs()
         self.maxSensorNbr = 30
+        self.currentSensNbr = 3
 
         x_win_dim = 550
         y_win_dim = 800
@@ -136,16 +136,11 @@ class Window(QMainWindow):
         sum_font = QtGui.QFont("Times", 12, QtGui.QFont.Bold)
         self.lblSum.setFont(sum_font)
 
-        self.radio1 = RadioButtonPair(self)
-        self.radio1.move(x_entry - 30, 450)
-        self.radio2 = RadioButtonPair(self)
-        self.radio2.move(x_entry - 30, 505)
-        self.radio3 = RadioButtonPair(self)
-        self.radio3.move(x_entry - 30, 560)
-        self.all_radio = [self.radio1, self.radio2, self.radio3]
-        for rb in self.all_radio:
-            rb.b1.clicked.connect(lambda: self.onChanged(''))
-            rb.b2.clicked.connect(lambda: self.onChanged(''))
+        self.lblSensors = QtWidgets.QLabel('Sensori: 3/30', self)
+        self.lblSensors.move(x_entry - 20, 720)
+        self.lblSensors.setFixedWidth(350)
+        sensors_font = QtGui.QFont("Times", 12, QtGui.QFont.Bold)
+        self.lblSensors.setFont(sensors_font)
 
         # QSpinBox potrebbe esser meglio
         self.entry1Edit = MyEntry(self, x_entry, 50, 1, 1, 4)
@@ -161,6 +156,18 @@ class Window(QMainWindow):
         for entry in self.all_entries:
             entry.textChanged[str].connect(self.onChanged)
             self.lastEntries.append(entry.text())
+
+        self.radio1 = RadioButtonPair(self)
+        self.radio1.move(x_entry - 30, 450)
+        self.radio2 = RadioButtonPair(self)
+        self.radio2.move(x_entry - 30, 505)
+        self.radio3 = RadioButtonPair(self)
+        self.radio3.move(x_entry - 30, 560)
+        self.all_radio = [self.radio1, self.radio2, self.radio3]
+        for rb in self.all_radio:
+            rb.b1.clicked.connect(lambda: self.onChanged(''))
+            rb.b2.clicked.connect(lambda: self.onChanged(''))
+            self.lastEntries.append(0)
 
         line = QtWidgets.QFrame(self)
         line.setGeometry(x_entry-20, 630, 150, 3)
@@ -208,39 +215,85 @@ class Window(QMainWindow):
 
     def exportPDF_application(self):
 
-        #response = HttpResponse(content_type="application/pdf")
-        #response['Content-Disposition']='filename="preventivo2.pdf"'
-        #pdfcanvas = canvas.Canvas(response)
-
-        formatted_time = time.ctime()
-
-        pdf_name = time.strftime("%d_%m_%Y") + time.strftime("__%H_%M_%S") + ".pdf"
+        pdf_name = 'Preventivo_' + time.strftime("%d_%m_%Y") + time.strftime("__%H_%M_%S") + ".pdf"
         doc = SimpleDocTemplate(pdf_name, pagesize=letter,
                                 rightMargin=72, leftMargin=72,
                                 topMargin=72, bottomMargin=18)
         Body = []
         logo = "logo.jpg"
 
-        im = Image(logo, 2*inch, 2*inch)
+        im = Image(logo, 1.7*inch, 1.5*inch)
         Body.append(im)
-        Body.append(Spacer(1, 12))
+        Body.append(Spacer(1, 40))
 
         styles = getSampleStyleSheet()
         styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY))
-        ptext = '<font size=12>%s</font>' % formatted_time
+        dateTxt = 'Data: ' + time.strftime("%d/%m/%Y") + ' - Ora: ' + time.strftime("%H:%M:%S")
+        ptext = '<font size=12>%s</font>' % dateTxt
         Body.append(Paragraph(ptext, styles["Normal"]))
-        Body.append(Spacer(1, 12))
+        Body.append(Spacer(1, 20))
+        ptext = '<font size=12>%s</font>' % 'Riassunto preventivo: '
+        Body.append(Paragraph(ptext, styles["Normal"]))
+        Body.append(Spacer(1, 30))
 
-        data = [['cosa 1', 1],
-                ['cosa 2', 1]]
-        table_col_width = 100
-        table_row_height = 20
-        t = Table(data, table_col_width, table_row_height)
-        t.setStyle(TableStyle([('FONT', (0,0), (0, -1), 'Helvetica-Bold')]))
+        data = self.createPDFData()
+        s = getSampleStyleSheet()
+        s = s["BodyText"]
+        s.wordWrap = 'CJK'
+        data2 = [[Paragraph(cell, s) for cell in row] for row in data]
+        table_col_width = (250, 70)
+        table_row_height = 30
+        t = Table(data2, table_col_width, table_row_height)
+        # t = Table(data2)
+        t.setStyle(TableStyle([('FONT', (0, 0), (0, -1), 'Helvetica-Bold'),
+                               ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                               ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                               ('VALIGN', (0, 0), (1, -1), 'MIDDLE'),
+                               ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
+                               ('BOX', (0, 0), (-1, -1), 0.25, colors.black)]))
+
         Body.append(t)
 
         doc.build(Body)
         os.startfile(pdf_name)
+
+    def createPDFData(self):
+
+        data = []
+        data.append(['Porte d\' Ingresso', self.lastEntries[0]])
+
+        if self.chk1.checkState():
+            data.append(['Finestre / Porte Finestre (MARRONE)', self.lastEntries[1]])
+        else:
+            data.append(['Finestre / Porte Finestre', self.lastEntries[1]])
+
+        if self.chk2.checkState():
+            data.append(['Disimpegni dell\' abitazione (MARRONE)', self.lastEntries[2]])
+        else:
+            data.append(['Disimpegni dell\' abitazione', self.lastEntries[2]])
+
+        data.append(['Rilevatore di movimento (camera da letto, sala, cucina,...)', self.lastEntries[3]])
+        data.append(['Utenti del sistema di allarme (telecomandi)', self.lastEntries[4]])
+        data.append(['Terrazzi da proteggere', self.lastEntries[5]])
+
+        if self.lastEntries[6] == 0:
+            data.append(['Rivelatore di allagamento', 'No'])
+        else:
+            data.append(['Rivelatore di allagamento', 'Si'])
+
+        if self.lastEntries[7] == 0:
+            data.append(['Rivelatore di fumo', 'No'])
+        else:
+            data.append(['Rivelatore di fumo', 'Si'])
+
+        if self.lastEntries[8] == 0:
+            data.append(['Rivelatore di monossido', 'No'])
+        else:
+            data.append(['Rivelatore di monossido', 'Si'])
+
+        data.append(['Totale Preventivo (IVA inclusa)', self.lblSum.text()])
+
+        return data
 
     def onChanged(self, lastEntry):
 
@@ -272,15 +325,17 @@ class Window(QMainWindow):
         for rb in self.all_radio:
             if rb.b2.isChecked():
                 entries_int.append(1)
+                self.lastEntries.append(1)
             else:
                 entries_int.append(0)
+                self.lastEntries.append(0)
 
         moneySum = (entries_int[0] * porte_ingresso + entries_int[1] * finestre + entries_int[2] * disimpegni +
                entries_int[3] * sensore_movimento + entries_int[4] * telecomandi + entries_int[5] * terrazzi +
                entries_int[6] * rivelatore_allagamento + entries_int[7] * rivelatore_fumo +
                entries_int[8] * rivelatore_monossido + costante) * iva
 
-        self.lblSum.setText('{0:.2f}'.format(moneySum))
+        self.lblSum.setText('{0:.2f}'.format(moneySum) + ' ' + u"\u20AC")
         self.lblSum.adjustSize()
 
     def removePdfs(self):
@@ -296,8 +351,10 @@ class Window(QMainWindow):
 
         entries_sum = self.getAllEntriesSum()
         if entries_sum > self.maxSensorNbr:
-            for ii, entry in enumerate(self.all_entries):
-                entry.setText(self.lastEntries[ii])
+            self.resetOldValues()
+        else:
+            self.currentSensNbr = self.getAllEntriesSum()
+        self.updateSensNbr()
 
     def getAllEntriesSum(self):
 
@@ -311,6 +368,32 @@ class Window(QMainWindow):
                 entries_sum += 1
 
         return entries_sum
+
+    def updateSensNbr(self):
+
+        lbl_txt = 'Sensori: ' + str(self.currentSensNbr) + '/30'
+        self.lblSensors.setText(lbl_txt)
+
+    def resetOldValues(self):
+
+        for ii, entry in enumerate(self.all_entries):
+            entry.setText(self.lastEntries[ii])
+
+        if self.lastEntries[-3] == 1:
+            self.radio1.b2.setChecked(True)
+        else:
+            self.radio1.b1.setChecked(True)
+
+        if self.lastEntries[-2] == 1:
+            self.radio2.b2.setChecked(True)
+        else:
+            self.radio2.b1.setChecked(True)
+
+        if self.lastEntries[-1] == 1:
+            self.radio3.b2.setChecked(True)
+        else:
+            self.radio3.b1.setChecked(True)
+
 
 
 def run():
