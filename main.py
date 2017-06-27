@@ -82,7 +82,8 @@ class Window(QMainWindow):
         self.setGeometry(100, 100, x_win_dim, y_win_dim)
         self.setFixedSize(x_win_dim, y_win_dim)
         self.setWindowTitle("Smart Security Preventivi")
-        self.setWindowIcon(QtGui.QIcon('logo.jpg'))
+        # self.setWindowIcon(QtGui.QIcon('logo.jpg'))
+        self.setWindowIcon(QtGui.QIcon(resource_path('logo.jpg')))
 
         newAction = QtWidgets.QAction("Nuovo...", self)
         newAction.setShortcut("Ctrl+N")
@@ -114,22 +115,22 @@ class Window(QMainWindow):
         x_entry = 400
 
         lbl1 = MyLabel('Porte d\' Ingresso', self, x_label, 50)
-        lbl2 = MyLabel('Finestre / Porte Finestre', self, x_label, 100)
         self.chk1 = QtWidgets.QCheckBox("Sensore Marrone", self)
         self.chk1.setFixedWidth(310)
-        self.chk1.move(x_label, 135)
-        lbl3 = MyLabel('Disimpegni dell\' abitazione', self, x_label, 170)
+        self.chk1.move(x_label, 75)
+        lbl2 = MyLabel('Finestre / Porte Finestre', self, x_label, 125)
         self.chk2 = QtWidgets.QCheckBox("Sensore Marrone", self)
         self.chk2.setFixedWidth(310)
-        self.chk2.move(x_label, 205)
+        self.chk2.move(x_label, 150)
+        lbl3 = MyLabel('Disimpegni dell\' abitazione', self, x_label, 200)
         lbl4 = MyLabel('Rilevatore di movimento', self, x_label, 250)
         lbl4_bis = MyLabel('(camera da letto, sala, cucina,...)', self, x_label, 275)
         lbl5 = MyLabel('Utenti del sistema di allarme', self, x_label, 325)
         lbl5_bis = MyLabel('(telecomandi)', self, x_label, 350)
         lbl6 = MyLabel('Terrazzi da proteggere', self, x_label, 400)
         lbl7 = MyLabel('Rivelatore di allagamento', self, x_label, 460)
-        lbl8 = MyLabel('Rivelatore di fumo', self, x_label, 515)
-        lbl9 = MyLabel('Rivelatore di monossido', self, x_label, 570)
+        lbl8 = MyLabel('Rivelatore di fumo', self, x_label, 510)
+        lbl9 = MyLabel('Rivelatore di monossido', self, x_label, 560)
 
         self.lblSum = QtWidgets.QLabel('', self)
         self.lblSum.move(x_entry-20, 650)
@@ -144,8 +145,8 @@ class Window(QMainWindow):
 
         # QSpinBox potrebbe esser meglio
         self.entry1Edit = MyEntry(self, x_entry, 50, 1, 1, 4)
-        self.entry2Edit = MyEntry(self, x_entry, 100, 0, 0, 20)
-        self.entry3Edit = MyEntry(self, x_entry, 170, 1, 1, 4)
+        self.entry2Edit = MyEntry(self, x_entry, 125, 0, 0, 20)
+        self.entry3Edit = MyEntry(self, x_entry, 200, 1, 1, 4)
         self.entry4Edit = MyEntry(self, x_entry, 250, 0, 0, 10)
         self.entry5Edit = MyEntry(self, x_entry, 325, 1, 1, 5)
         self.entry6Edit = MyEntry(self, x_entry, 400, 0, 0, 4)
@@ -158,11 +159,11 @@ class Window(QMainWindow):
             self.lastEntries.append(entry.text())
 
         self.radio1 = RadioButtonPair(self)
-        self.radio1.move(x_entry - 30, 450)
+        self.radio1.move(x_entry, 460)
         self.radio2 = RadioButtonPair(self)
-        self.radio2.move(x_entry - 30, 505)
+        self.radio2.move(x_entry, 510)
         self.radio3 = RadioButtonPair(self)
-        self.radio3.move(x_entry - 30, 560)
+        self.radio3.move(x_entry, 560)
         self.all_radio = [self.radio1, self.radio2, self.radio3]
         for rb in self.all_radio:
             rb.b1.clicked.connect(lambda: self.onChanged(''))
@@ -174,12 +175,18 @@ class Window(QMainWindow):
         # line.move(x_entry, 620)
         line.setFrameShape(QtWidgets.QFrame.HLine)
 
-        self.lblContacts = QtWidgets.QLabel('Contatti:\nIng. Francesco Brigidi, Smart Security Srl \nVia della Cooperazione, 8/10, 47043 Gatteo (FC), T. 0541 942414', self)
+        self.lblContacts = QtWidgets.QLabel('Contatti: Smart Security Srl \nVia della Cooperazione, 8/10, 47043 Gatteo (FC), T. 0541 942414', self)
         self.lblContacts.move(10, self.height()-100)
         self.lblContacts.setFixedWidth(self.width())
         self.lblContacts.setFixedHeight(70)
-        contacts_font = QtGui.QFont("Times", 6, QtGui.QFont.Normal)
+        contacts_font = QtGui.QFont("Times", 7, QtGui.QFont.Normal)
         self.lblContacts.setFont(contacts_font)
+
+        pic = QtWidgets.QLabel(self)
+        pic.setGeometry(10, 630, 100, 89)
+        # use full ABSOLUTE path to the image, not relative
+        pic.setPixmap(QtGui.QPixmap(resource_path("logo_small.jpg")))
+        # pic.setPixmap(QtGui.QPixmap(os.getcwd() + "/logo_small.jpg"))
 
         footer = QtWidgets.QFrame(self)
         footer.setGeometry(0, self.height()-30, self.width(), 30)
@@ -220,7 +227,7 @@ class Window(QMainWindow):
                                 rightMargin=72, leftMargin=72,
                                 topMargin=72, bottomMargin=18)
         Body = []
-        logo = "logo.jpg"
+        logo = resource_path("logo.jpg")
 
         im = Image(logo, 1.7*inch, 1.5*inch)
         Body.append(im)
@@ -260,18 +267,18 @@ class Window(QMainWindow):
     def createPDFData(self):
 
         data = []
-        data.append(['Porte d\' Ingresso', self.lastEntries[0]])
 
         if self.chk1.checkState():
+            data.append(['Porte d\' Ingresso (MARRONE)', self.lastEntries[0]])
+        else:
+            data.append(['Porte d\' Ingresso', self.lastEntries[0]])
+
+        if self.chk2.checkState():
             data.append(['Finestre / Porte Finestre (MARRONE)', self.lastEntries[1]])
         else:
             data.append(['Finestre / Porte Finestre', self.lastEntries[1]])
 
-        if self.chk2.checkState():
-            data.append(['Disimpegni dell\' abitazione (MARRONE)', self.lastEntries[2]])
-        else:
-            data.append(['Disimpegni dell\' abitazione', self.lastEntries[2]])
-
+        data.append(['Disimpegni dell\' abitazione', self.lastEntries[2]])
         data.append(['Rilevatore di movimento (camera da letto, sala, cucina,...)', self.lastEntries[3]])
         data.append(['Utenti del sistema di allarme (telecomandi)', self.lastEntries[4]])
         data.append(['Terrazzi da proteggere', self.lastEntries[5]])
@@ -299,7 +306,7 @@ class Window(QMainWindow):
 
         self.validateEntry(lastEntry)
 
-        costante = 1100.0
+        costante = 925.0
         iva = 1.22
 
         porte_ingresso = 50.0
@@ -395,6 +402,15 @@ class Window(QMainWindow):
             self.radio3.b1.setChecked(True)
 
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def run():
     app = QApplication(sys.argv)
